@@ -1,0 +1,14 @@
+langchain
+langchain-openai
+streamlit
+langchain-community
+langchain-core
+langchain-chroma
+chroma
+fastapi[standard]
+python-dotenv
+pypdf
+requests
+sqlalchemy 
+psycopg2-binary
+
