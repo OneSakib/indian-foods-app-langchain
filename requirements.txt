@@ -11,4 +11,4 @@ pypdf
 requests
 sqlalchemy 
 psycopg2-binary
-
+pandas
