@@ -30,6 +30,7 @@ class OrderCreate(OrderBase):
 
 class OrderOut(OrderBase):
     id: int
+    item: MenuItemOut
 
     class Config:
         orm_mode = True
