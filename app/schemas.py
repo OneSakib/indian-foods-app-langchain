@@ -34,3 +34,25 @@ class OrderOut(OrderBase):
 
     class Config:
         orm_mode = True
+
+
+class Message(BaseModel):
+    session_id: int
+    role: str
+    content: str
+
+
+class MessageOut(Message):
+    int: int
+
+    class Config:
+        orm_model = True
+
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+
+
+class ChatResponse(BaseModel):
+    response: str

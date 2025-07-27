@@ -1,10 +1,14 @@
+
+from langchain.schema.messages import AIMessage
+from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.exceptions import HTTPException
 from .. import crud, databases
-from ..helpers import encode_session_id, decode_session_id
-
+from ..helpers import encode_session_id, decode_session_id, convert_to_llm_message
+from ..schemas import ChatRequest, ChatResponse, Message
+from ..llm_with_tools import LLMWithTools
 
 router = APIRouter()
 
@@ -20,4 +24,23 @@ def create_chat(db: Session = Depends(databases.get_db)):
     return JSONResponse(status_code=200, content={'session_id': session_id})
 
 
-# @router.post('',respose)
+@router.post('', response_model=ChatResponse)
+def chats(request: ChatRequest, db: Session = Depends(databases.get_db)):
+    session_id = decode_session_id(request.session_id)
+    user_message = Message(
+        session_id=session_id,
+        role='user',
+        content=request.message
+    )
+    crud.create_message(db, user_message)
+    msgs = crud.get_messages(db, session_id)
+    messages = convert_to_llm_message(msgs)
+    llm_with_tool = LLMWithTools()
+    response = llm_with_tool.invoke(messages=messages)
+    ai_message = Message(
+        session_id=session_id,
+        role="assistant",
+        content=response
+    )
+    crud.create_message(db, ai_message)
+    return ChatResponse(response=response)

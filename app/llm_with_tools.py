@@ -1,8 +1,17 @@
+import os
+from langchain_chroma import Chroma
+from typing import Literal, List
+from langchain.schema.messages import HumanMessage, AIMessage, ToolMessage
 import requests
 from langchain.tools import StructuredTool
 from pydantic import BaseModel
 from typing import List
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.output_parsers import StrOutputParser
+from langchain.chains import RetrievalQA
+from dotenv import load_dotenv
 
+load_dotenv()
 # Create Structured Tool
 
 BASE_URL = "http://127.0.0.1:8000"
@@ -102,3 +111,30 @@ create_order_tool = StructuredTool.from_function(
     description="Create Order Tool",
     args_schema=OrderInput
 )
+
+
+# class ChatMessages:
+#     messages: List[Messages]
+
+
+class LLMWithTools:
+    def __init__(self) -> None:
+        self.llm = ChatOpenAI(model="gpt-4o")
+        self.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+        self.parser = StrOutputParser()
+        self.persist_directory = os.path.join(os.curdir, './db')
+        self.collection_name = "indian_food"
+        self.vector_store = Chroma(
+            embedding_function=self.embeddings,
+            collection_name=self.collection_name,
+            persist_directory=self.persist_directory
+        )
+        self.llm_with_tools = self.llm.bind_tools(
+            [get_menu_tool, create_menu_tool, get_order_tool, create_order_tool])
+
+    def invoke(self, messages) -> str:
+        retriever = self.vector_store.as_retriever()
+        chain = RetrievalQA.from_llm(retriever=retriever, llm=self.llm_with_tools,
+                                     return_source_documents=True)
+        result = chain.invoke(messages)
+        return result['result']

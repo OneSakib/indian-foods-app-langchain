@@ -39,6 +39,7 @@ class Message(Base):
     session_id = Column(Integer, ForeignKey("sessions.id"))
     role = Column(String)
     content = Column(Text)
+    tool_id = Column(String, nullable=True,default=None)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Populate
