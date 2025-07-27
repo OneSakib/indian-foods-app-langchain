@@ -2,6 +2,7 @@ import random
 import pandas as pd
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.exceptions  import HTTPException
 from sqlalchemy.orm import Session
 from .. import databases, schemas, crud
 
@@ -15,6 +16,9 @@ def list_menu(db: Session = Depends(databases.get_db)):
 
 @router.post('/', response_model=schemas.MenuItemOut)
 def add_item(item: schemas.MenuItemCreate, db: Session = Depends(databases.get_db)):
+    menu_item = crud.get_menu(db=db, name=item.name)    
+    if menu_item:
+        raise HTTPException(status_code=400,detail="Name Already Exist!")
     return crud.create_menu_item(db, item)
 
 
