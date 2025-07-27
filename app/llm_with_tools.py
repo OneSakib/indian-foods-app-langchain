@@ -136,5 +136,5 @@ class LLMWithTools:
         retriever = self.vector_store.as_retriever()
         chain = RetrievalQA.from_llm(retriever=retriever, llm=self.llm_with_tools,
                                      return_source_documents=True)
-        result = chain.invoke(messages)
+        result = chain.invoke("What is the app name?")
         return result['result']
