@@ -15,7 +15,7 @@ class MenuItemOut(MenuItemBase):
     id: int
 
     class config:
-        orm_mode = True
+        from_attributes = True
 
 
 class OrderBase(BaseModel):
@@ -33,7 +33,7 @@ class OrderOut(OrderBase):
     item: MenuItemOut
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Message(BaseModel):

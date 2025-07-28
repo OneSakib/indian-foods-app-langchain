@@ -1,7 +1,12 @@
+from langchain_core.runnables import RunnableWithMessageHistory
+from langchain.memory import ChatMessageHistory
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import os
 from langchain_chroma import Chroma
 from typing import Literal, List
-from langchain.schema.messages import HumanMessage, AIMessage, ToolMessage
+from langchain.schema.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 import requests
 from langchain.tools import StructuredTool
 from pydantic import BaseModel
@@ -45,7 +50,7 @@ class OrderInput(BaseModel):
 
 def get_menu() -> List[FoodMenu]:
     """Get menu Item of Indian Restaurant App
-    this will return an menu items with price    
+    this will return an menu items with price
     """
     url = BASE_URL+"/menu"
     response = requests.get(url)
@@ -131,10 +136,37 @@ class LLMWithTools:
         )
         self.llm_with_tools = self.llm.bind_tools(
             [get_menu_tool, create_menu_tool, get_order_tool, create_order_tool])
+        self.history_store = {}
 
-    def invoke(self, messages) -> str:
+    def get_history(self, session_id):
+        if session_id not in self.history_store:
+            self.history_store[session_id] = ChatMessageHistory()
+        return self.history_store[session_id]
+
+    def invoke(self, session_id: str, messages, input: str,) -> str:
         retriever = self.vector_store.as_retriever()
-        chain = RetrievalQA.from_llm(retriever=retriever, llm=self.llm_with_tools,
-                                     return_source_documents=True)
-        result = chain.invoke("What is the app name?")
-        return result['result']
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", """
+                    "You are a Restaurant App Support Tool"
+                    "Use the given context to answer the question. "
+                    "If you don't know the answer, say you don't know. "
+                    "Use three sentence maximum and keep the answer concise. "
+                    "Context: {context}"
+                                """),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("human", "{input}")
+            ]
+        )
+        chain = prompt | self.llm_with_tools | self.parser
+        chain_with_history = RunnableWithMessageHistory(
+            chain,
+            get_session_history=lambda session_id: self.get_history(
+                session_id),
+            input_messages_key="input",
+            history_messages_key="chat_history"
+        )
+        result = chain_with_history.invoke(
+            {"input": input}, config={"configurable": {"session_id": session_id}})
+        print(">>>>>>>>>>>>>>>>>>Result:", result)
+        return "OU"

@@ -27,16 +27,17 @@ def create_chat(db: Session = Depends(databases.get_db)):
 @router.post('', response_model=ChatResponse)
 def chats(request: ChatRequest, db: Session = Depends(databases.get_db)):
     session_id = decode_session_id(request.session_id)
+    msgs = crud.get_messages(db, session_id)
+    messages = convert_to_llm_message(msgs)
     user_message = Message(
         session_id=session_id,
         role='user',
         content=request.message
     )
     crud.create_message(db, user_message)
-    msgs = crud.get_messages(db, session_id)
-    messages = convert_to_llm_message(msgs)
     llm_with_tool = LLMWithTools()
-    response = llm_with_tool.invoke(messages=messages)
+    response = llm_with_tool.invoke(
+        request.session_id, messages=messages, input=request.message)
     ai_message = Message(
         session_id=session_id,
         role="assistant",
