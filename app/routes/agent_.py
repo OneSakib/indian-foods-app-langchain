@@ -8,13 +8,13 @@ from fastapi.exceptions import HTTPException
 from .. import crud, databases
 from ..helpers import encode_session_id, decode_session_id, convert_to_llm_message
 from ..schemas import ChatRequest, ChatResponse, Message
-from ..support_chat import LLMWithTools
+from ..support_agent import LLMWithTools
 
 router = APIRouter()
 
 
 @router.get('')
-def create_chat(db: Session = Depends(databases.get_db)):
+def create_agent(db: Session = Depends(databases.get_db)):
     session_obj = crud.create_session(db=db)
     id_value = getattr(session_obj, "id", None)
     if id_value is None:
@@ -25,7 +25,7 @@ def create_chat(db: Session = Depends(databases.get_db)):
 
 
 @router.post('', response_model=ChatResponse)
-def chats(request: ChatRequest, db: Session = Depends(databases.get_db)):
+def chat_with_agent(request: ChatRequest, db: Session = Depends(databases.get_db)):
     session_id = decode_session_id(request.session_id)
     msgs = crud.get_messages(db, session_id)
     messages = convert_to_llm_message(msgs)
@@ -36,8 +36,7 @@ def chats(request: ChatRequest, db: Session = Depends(databases.get_db)):
     )
     crud.create_message(db, user_message)
     llm_with_tool = LLMWithTools()
-    response = llm_with_tool.invoke(
-        messages=messages, input=request.message)
+    response = llm_with_tool.invoke(messages=messages, input=request.message)
     ai_message = Message(
         session_id=session_id,
         role="assistant",

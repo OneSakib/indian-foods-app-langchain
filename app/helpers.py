@@ -18,10 +18,13 @@ def convert_to_llm_message(msgs):
     messages = []
     for msg in msgs:
         if msg.role == 'user':
-            messages.append(HumanMessage(content=msg.content))
+            messages.append(("user", msg.content))
+            # messages.append(HumanMessage(content=msg.content))
         elif msg.role == 'assistant':
-            messages.append(AIMessage(content=msg.content))
+            messages.append(("assistant", msg.content))
+            # messages.append(AIMessage(content=msg.content))
         elif msg.role == 'tool':
+            messages.append(("tool", msg.content, msg.tool_id))
             messages.append(ToolMessage(
                 content=msg.content, tool_call_id=msg.tool_id))
     return messages
